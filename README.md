@@ -38,6 +38,20 @@ Other commands: `/start`, `/summary` (today so far), `/myid`.
 | `summary.py`         | Builds the daily summary table                      |
 | `config.py`          | Env/config (token, owner id, timezone, starter set) |
 
+**Deployment (PythonAnywhere webhook) — reuses the core modules above:**
+
+| File                      | Purpose                                              |
+|---------------------------|------------------------------------------------------|
+| `flask_app.py`            | Webhook web app (Flask) — same behaviour as bot.py   |
+| `daily_summary.py`        | Scheduled task that sends the midnight summary        |
+| `set_webhook.py`          | One-time: registers the Telegram webhook             |
+| `telegram_api.py`         | Tiny Telegram API sender (via requests)              |
+| `wsgi_pythonanywhere.py`  | Sample WSGI config to paste into PythonAnywhere      |
+| `requirements-webhook.txt`| Deps for the webhook deployment (Flask, requests)    |
+
+Two ways to run: **local polling** (`bot.py`, good for testing) or
+**PythonAnywhere webhook** (always-on, free, no card — see below).
+
 ---
 
 ## Run it locally (to test)
@@ -65,50 +79,62 @@ Then send `/start`, add categories, and start logging.
 
 ---
 
-## Deploy: always-on, free (Oracle Cloud Always Free)
+## Deploy: always-on, free, no card (PythonAnywhere)
 
-Your laptop isn't always on, so run the bot on a free 24/7 VM. Telegram is the
-middleman — you keep chatting from your phone; the VM just needs to stay online.
+PythonAnywhere runs the bot 24/7 in the cloud for free, with **no card required**.
+It uses the **webhook** version (`flask_app.py`) plus a **daily scheduled task**
+(`daily_summary.py`). You keep chatting from your phone; PythonAnywhere stays online.
 
-1. **Create the VM** — Sign up at Oracle Cloud (Always Free). Create a Compute
-   instance with an **Ubuntu** image (the Always Free ARM/AMD shapes are fine).
-   Save the SSH key.
-2. **SSH in and set up:**
-   ```bash
-   sudo apt update && sudo apt install -y python3-venv git
-   git clone <your-repo-url> tele-expense-manager
-   cd tele-expense-manager
-   python3 -m venv .venv && source .venv/bin/activate
-   pip install -r requirements.txt
-   cp .env.example .env && nano .env     # paste token + OWNER_ID
-   ```
-3. **Run it as a service** so it restarts on reboot/crash. Create
-   `/etc/systemd/system/expense-bot.service`:
-   ```ini
-   [Unit]
-   Description=Tele Expense Manager
-   After=network-online.target
+> Domain assumed below: `shypurr.pythonanywhere.com` (username `ShyPurr`). Adjust to
+> your own. Home path shown as `/home/ShyPurr/...` — confirm yours with `pwd`.
 
-   [Service]
-   WorkingDirectory=/home/ubuntu/tele-expense-manager
-   ExecStart=/home/ubuntu/tele-expense-manager/.venv/bin/python bot.py
-   Restart=always
-   User=ubuntu
+### 1. Get the code onto PythonAnywhere (Bash console)
+```bash
+git clone https://github.com/vasraj273/ExpenseTracker-TelegramBot.git
+cd ExpenseTracker-TelegramBot
+pip install --user -r requirements-webhook.txt   # Flask/requests usually preinstalled
+```
 
-   [Install]
-   WantedBy=multi-user.target
-   ```
-   Then:
-   ```bash
-   sudo systemctl daemon-reload
-   sudo systemctl enable --now expense-bot
-   sudo systemctl status expense-bot     # check it's running
-   journalctl -u expense-bot -f          # live logs
-   ```
+### 2. Create `.env`
+```bash
+cp .env.example .env
+nano .env
+```
+Fill in `TELEGRAM_BOT_TOKEN`, `OWNER_ID`, and a `WEBHOOK_SECRET`. Generate a secret:
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(24))"
+```
 
-The bot uses **long polling** (no public IP/webhook/port needed), so no firewall
-changes are required. The SQLite file (`expenses.db`) lives next to the code and
-persists on the VM disk.
+### 3. Create the web app
+- **Web** tab → **Add a new web app** → **Manual configuration** → your Python version.
+- Open the **WSGI configuration file** link and replace its contents with what's in
+  `wsgi_pythonanywhere.py` (set `PROJECT_PATH` to the folder from `pwd`).
+- Click the big green **Reload** button.
+- Visit `https://shypurr.pythonanywhere.com/` — it should say
+  *"Tele Expense Manager is running."*
+
+### 4. Register the webhook (Bash console)
+```bash
+python set_webhook.py https://shypurr.pythonanywhere.com
+```
+This points Telegram at `/webhook/<secret>`. Now message your bot `/start`.
+
+### 5. Schedule the daily summary
+- **Tasks** tab → add a **Scheduled task**:
+  ```
+  python /home/ShyPurr/ExpenseTracker-TelegramBot/daily_summary.py
+  ```
+- Set the time to **18:30 UTC** — that's **00:00 IST**.
+
+### Keeping it alive (free-tier quirks)
+- Every ~3 months PythonAnywhere emails you to click **"Run until 3 months from now"**
+  on the Web tab. Miss it and the bot pauses (data is safe) until you click.
+- The `expenses.db` SQLite file lives next to the code and persists.
+- After any `git pull` of new code, hit **Reload** on the Web tab.
+
+*(An always-on Linux VM — Oracle Cloud / Google Cloud free tier — is an alternative
+if you ever want one; those use `bot.py` via a `systemd` service, but they require a
+card for signup.)*
 
 ---
 

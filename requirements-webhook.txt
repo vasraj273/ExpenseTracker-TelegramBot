@@ -1,0 +1,6 @@
+# Dependencies for the PythonAnywhere (webhook) deployment.
+# Flask and requests are pre-installed on PythonAnywhere, but listed for clarity
+# and for running the webhook version locally.
+Flask>=3.0
+requests>=2.31
+python-dotenv>=1.0.0

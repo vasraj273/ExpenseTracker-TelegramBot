@@ -177,16 +177,29 @@ You ──(text)──▶ Telegram ──▶ Bot (webhook/polling)
 - **Storage:** SQLite (zero-setup, perfect for a single user)
 - **Scheduling:** the framework's job queue (fires at 00:00 IST)
 - **Charts:** `matplotlib` — *later only*, not in v1
-- **Deploy:** **Oracle Cloud Always Free** — a real always-on Linux VM, free
-  indefinitely, persists the SQLite file on disk. Code stays host-agnostic so it
-  can run on any Linux box.
+- **Deploy:** **PythonAnywhere (free tier)** — always-on, no card required. Runs the
+  **webhook** version (`flask_app.py`) as a WSGI web app, with a **daily scheduled
+  task** (`daily_summary.py`) at 18:30 UTC (= 00:00 IST) for the summary. The core
+  modules (`db`, `expense_parser`, `summary`, `config`) are shared with the local
+  polling bot (`bot.py`) unchanged. SQLite file persists on PythonAnywhere.
+  - *Alternative:* an always-on Linux VM (Oracle/GCP free tier) running `bot.py` via
+    systemd — rejected for v1 because both require a card at signup.
 
 ### How you use it (access model)
 
 You interact with the bot entirely through the **Telegram app on your phone**.
-Telegram is the middleman: your phone ↔ Telegram ↔ bot process (on the Oracle VM).
+Telegram is the middleman: your phone ↔ Telegram ↔ bot process (on PythonAnywhere).
 Your phone never connects to the server directly, so the server just needs to be
-online 24/7 — which is exactly what the Always Free VM provides.
+online 24/7 — which the PythonAnywhere web app provides.
+
+### Two transports, same brain
+
+- **Local / polling** (`bot.py`) — long-polling via python-telegram-bot; good for
+  testing on your laptop.
+- **Cloud / webhook** (`flask_app.py` + `daily_summary.py`) — Telegram pushes updates
+  to a Flask app; the midnight summary is a scheduled task. This is the deployed path.
+
+Both share the parsing, storage, and summary logic, so behaviour is identical.
 
 ---
 
