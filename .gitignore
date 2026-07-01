@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Secrets & local data
+.env
+*.db
+*.db-journal
+*.db-wal
+
+# OS
+.DS_Store
+
+# Tooling
+.claude-flow/
