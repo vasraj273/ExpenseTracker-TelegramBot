@@ -16,3 +16,6 @@ env/
 
 # Tooling
 .claude-flow/
+
+# Local scratch
+prompt
