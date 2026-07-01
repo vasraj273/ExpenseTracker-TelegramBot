@@ -1,0 +1,18 @@
+name: Daily summary
+
+# Triggers the bot's daily-summary endpoint once a day.
+# 18:30 UTC = 00:00 IST (Asia/Kolkata).
+# Note: GitHub's scheduled runs can be delayed a few minutes under load.
+# For minute-accurate timing, prefer cron-job.org (see README).
+
+on:
+  schedule:
+    - cron: "30 18 * * *"
+  workflow_dispatch: {}   # allows a manual "Run workflow" for testing
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger daily summary
+        run: curl -fsS "${{ secrets.DAILY_URL }}"

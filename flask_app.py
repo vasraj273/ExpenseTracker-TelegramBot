@@ -28,6 +28,19 @@ def index():
     return "Tele Expense Manager is running.", 200
 
 
+@app.route("/tasks/daily/<secret>", methods=["GET", "POST"])
+def tasks_daily(secret):
+    """Trigger the daily summary. Hit once a day (00:00 IST) by an external
+    scheduler (free tier has no scheduled tasks). Protected by WEBHOOK_SECRET."""
+    if not config.WEBHOOK_SECRET or secret != config.WEBHOOK_SECRET:
+        return "forbidden", 403
+    from daily_summary import run
+
+    status = run()
+    logger.info("daily task: %s", status)
+    return status, 200
+
+
 @app.post("/webhook/<secret>")
 def webhook(secret):
     # Path secret + Telegram's secret_token header (defense in depth).

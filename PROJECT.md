@@ -178,10 +178,12 @@ You ──(text)──▶ Telegram ──▶ Bot (webhook/polling)
 - **Scheduling:** the framework's job queue (fires at 00:00 IST)
 - **Charts:** `matplotlib` — *later only*, not in v1
 - **Deploy:** **PythonAnywhere (free tier)** — always-on, no card required. Runs the
-  **webhook** version (`flask_app.py`) as a WSGI web app, with a **daily scheduled
-  task** (`daily_summary.py`) at 18:30 UTC (= 00:00 IST) for the summary. The core
-  modules (`db`, `expense_parser`, `summary`, `config`) are shared with the local
-  polling bot (`bot.py`) unchanged. SQLite file persists on PythonAnywhere.
+  **webhook** version (`flask_app.py`) as a WSGI web app. The core modules (`db`,
+  `expense_parser`, `summary`, `config`) are shared with the local polling bot
+  (`bot.py`) unchanged. SQLite file persists on PythonAnywhere.
+- **Daily summary trigger:** PythonAnywhere's free tier has **no scheduled tasks**, so
+  a free external scheduler (cron-job.org, or GitHub Actions) hits a protected endpoint
+  `GET /tasks/daily/<WEBHOOK_SECRET>` once a day at 00:00 IST, which sends the summary.
   - *Alternative:* an always-on Linux VM (Oracle/GCP free tier) running `bot.py` via
     systemd — rejected for v1 because both require a card at signup.
 

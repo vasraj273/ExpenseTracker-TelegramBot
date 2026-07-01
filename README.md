@@ -119,12 +119,24 @@ python set_webhook.py https://shypurr.pythonanywhere.com
 ```
 This points Telegram at `/webhook/<secret>`. Now message your bot `/start`.
 
-### 5. Schedule the daily summary
-- **Tasks** tab → add a **Scheduled task**:
-  ```
-  python /home/ShyPurr/ExpenseTracker-TelegramBot/daily_summary.py
-  ```
-- Set the time to **18:30 UTC** — that's **00:00 IST**.
+### 5. Schedule the daily summary (external free cron)
+PythonAnywhere's **free tier has no scheduled tasks**, so an external free scheduler
+pings a protected endpoint once a day. The endpoint is already built:
+`GET /tasks/daily/<WEBHOOK_SECRET>` → sends yesterday's summary.
+
+Use either:
+
+- **cron-job.org** (free, timezone-aware — recommended): create a cronjob for
+  `https://shypurr.pythonanywhere.com/tasks/daily/<WEBHOOK_SECRET>`, daily at
+  **00:00**, timezone **Asia/Kolkata**.
+- **GitHub Actions** (uses this repo): see `.github/workflows/daily-summary.yml`.
+  Add a repo secret `DAILY_URL` = the full URL above. Cron runs at `30 18 * * *`
+  (18:30 UTC = 00:00 IST).
+
+Test the endpoint anytime from a Bash console:
+```bash
+python daily_summary.py    # sends yesterday's summary to you now
+```
 
 ### Keeping it alive (free-tier quirks)
 - Every ~3 months PythonAnywhere emails you to click **"Run until 3 months from now"**
