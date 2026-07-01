@@ -162,8 +162,13 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # success — log silently, no reply
-    db.add_expense(uid, result.item, result.amount, result.category)
+    # success — log silently. If the save itself fails, tell the user so that a
+    # silent (no-reply) outcome always means "saved".
+    try:
+        db.add_expense(uid, result.item, result.amount, result.category)
+    except Exception:
+        logger.exception("Failed to save expense for user %s", uid)
+        await update.message.reply_text("⚠️ Couldn't save that — please resend.")
 
 
 # --------------------------------------------------------------------------- #

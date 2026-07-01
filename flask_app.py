@@ -5,6 +5,7 @@ synchronous and driven by webhooks instead of long-polling. Core logic
 (parsing, storage, summary) is reused unchanged.
 """
 
+import logging
 from datetime import datetime
 
 from flask import Flask, request
@@ -14,6 +15,8 @@ import db
 from expense_parser import parse_message
 from summary import build_daily_summary
 from telegram_api import send_message
+
+logger = logging.getLogger("tele-expense-manager")
 
 db.init_db()
 
@@ -151,5 +154,10 @@ def _handle_expense(chat_id, user_id, text):
         )
         return
 
-    # success — log silently, no reply
-    db.add_expense(user_id, result.item, result.amount, result.category)
+    # success — log silently. If the save itself fails, tell the user so that a
+    # silent (no-reply) outcome always means "saved".
+    try:
+        db.add_expense(user_id, result.item, result.amount, result.category)
+    except Exception:
+        logger.exception("Failed to save expense for user %s", user_id)
+        send_message(chat_id, "⚠️ Couldn't save that — please resend.")
